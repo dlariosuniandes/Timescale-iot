@@ -492,10 +492,7 @@ La respuesta tiene esta estructura:
 """
 
 def get_custom_json(request, **kwargs):
-    data_result = {
-        "Temperatura":[],
-        "Humedad":[]
-    }
+    data_result = {}
     measurements = Measurement.objects.all()
     temperaturaMeasure = measurements[0]
     humedadMeasure = measurements[1]
@@ -532,14 +529,14 @@ def get_custom_json(request, **kwargs):
         end_iteration = int(currentDay.timestamp() * 1000000)
         start_iteration = int(newDay0.timestamp() * 1000000)
         locationDataTemp = Data.objects.filter(
-            station__location=selectedLocation, time__gte=start_iteration, time__lte=end_iteration,
+            station__location=selectedLocation, measurement__name=temperaturaMeasure.name, time__gte=start_iteration, time__lte=end_iteration,
         )
         minVal = locationDataTemp.aggregate(Min("min_value"))["min_value__min"]
         maxVal = locationDataTemp.aggregate(Max("max_value"))["max_value__max"]
         avgVal = locationDataTemp.aggregate(Avg("avg_value"))["avg_value__avg"]
         dataTemp.append(
             {
-                        "date": newDay0.isoformat(),   
+                        "date": str(newDay0.date()),   
                         "min": minVal if minVal != None else 0,
                         "max": maxVal if maxVal != None else 0,
                         "avg": round(avgVal if avgVal != None else 0, 2),
@@ -554,7 +551,7 @@ def get_custom_json(request, **kwargs):
         avgVal = locationDataHumedad.aggregate(Avg("avg_value"))["avg_value__avg"]
         datHumedad.append(
             {
-                        "date": newDay0.isoformat(),   
+                        "date": str(newDay0.date()),   
                         "min": minVal if minVal != None else 0,
                         "max": maxVal if maxVal != None else 0,
                         "avg": round(avgVal if avgVal != None else 0, 2),
