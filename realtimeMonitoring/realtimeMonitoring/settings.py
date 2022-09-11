@@ -85,7 +85,7 @@ DATABASES = {
         "NAME": "iot_data",
         "USER": "dbadmin",
         "PASSWORD": "uniandesIOT1234*",
-        "HOST": "localhost",
+        "HOST": "3.89.183.236",
         "PORT": "",
     }
 }

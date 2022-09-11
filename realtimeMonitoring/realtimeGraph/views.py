@@ -1,4 +1,4 @@
-from datetime import datetime, tzinfo
+from datetime import date, datetime, timedelta, tzinfo
 import json
 from os import name
 import time
@@ -490,6 +490,80 @@ La respuesta tiene esta estructura:
     "end": endTime
 }
 """
+
+def get_custom_json(request, **kwargs):
+    data_result = {
+        "Temperatura":[],
+        "Humedad":[]
+    }
+    measurements = Measurement.objects.all()
+    temperaturaMeasure = measurements[0]
+    humedadMeasure = measurements[1]
+    locations = Location.objects.all()
+    selectedLocation = locations[0]
+    try:
+        start = datetime.fromtimestamp(
+            float(request.GET.get("from", None)) / 1000
+        )
+    except:
+        start = None
+    try:
+        end = datetime.fromtimestamp(
+            float(request.GET.get("to", None)) / 1000)
+    except:
+        end = None
+    if start == None and end == None:
+        start = datetime.now() - timedelta(weeks=4)
+        end = datetime.now()
+    elif end == None:
+        end = datetime.now()
+    elif start == None:
+        start = datetime.fromtimestamp(0)
+    
+    dataTemp = []
+    datHumedad = []
+    delta = end - start
+    date_format = "%d/%m/%Y"
+    #
+    day0 = datetime.strptime(start.day.__str__()+'/'+start.month.__str__()+'/'+start.year.__str__(),date_format)
+    for x in range(1,delta.days + 2):
+        currentDay = day0 + timedelta(days=x)
+        newDay0 = currentDay - timedelta(days=1)
+        end_iteration = int(currentDay.timestamp() * 1000000)
+        start_iteration = int(newDay0.timestamp() * 1000000)
+        locationDataTemp = Data.objects.filter(
+            station__location=selectedLocation, time__gte=start_iteration, time__lte=end_iteration,
+        )
+        minVal = locationDataTemp.aggregate(Min("min_value"))["min_value__min"]
+        maxVal = locationDataTemp.aggregate(Max("max_value"))["max_value__max"]
+        avgVal = locationDataTemp.aggregate(Avg("avg_value"))["avg_value__avg"]
+        dataTemp.append(
+            {
+                        "date": newDay0.isoformat(),   
+                        "min": minVal if minVal != None else 0,
+                        "max": maxVal if maxVal != None else 0,
+                        "avg": round(avgVal if avgVal != None else 0, 2),
+                        
+            }
+        )
+        locationDataHumedad = Data.objects.filter(
+            station__location=locations[0], measurement__name=humedadMeasure.name, time__gte=start_iteration, time__lte=end_iteration,
+        )
+        minVal = locationDataHumedad.aggregate(Min("min_value"))["min_value__min"]
+        maxVal = locationDataHumedad.aggregate(Max("max_value"))["max_value__max"]
+        avgVal = locationDataHumedad.aggregate(Avg("avg_value"))["avg_value__avg"]
+        datHumedad.append(
+            {
+                        "date": newDay0.isoformat(),   
+                        "min": minVal if minVal != None else 0,
+                        "max": maxVal if maxVal != None else 0,
+                        "avg": round(avgVal if avgVal != None else 0, 2),
+                        
+            }
+        )
+    data_result["Temperatura"] = dataTemp
+    data_result["Humedad"] = datHumedad
+    return JsonResponse(data_result)
 
 
 def get_map_json(request, **kwargs):
